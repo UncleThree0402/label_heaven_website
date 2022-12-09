@@ -1,0 +1,33 @@
+<% layout('/layouts/boilerplate') %>
+<link rel="stylesheet" href="/css/comments/index.css">
+
+<div class="card mb-3">
+    <div class="card-header">
+        <ul class="nav nav-pills card-header-pills">
+            <li class="nav-item">
+                <button class="btn btn-primary" id="label-btn">Labeled</button>
+            </li>
+            <li class="nav-item ">
+                <button class="btn btn-outline-primary mx-3" id="nlabel-btn">Not Labeled</button>
+            </li>
+        </ul>
+    </div>
+    <ul class="list-group list-group-flush" id="label-comment">
+        <% for(let label of labels){ %>
+        <% if(label.isLabeled){ %>
+        <li class="list-group-item"><%= label.comment %></li>
+        <% } %>
+        <% } %>
+    </ul>
+
+    <ul class="list-group list-group-flush" id="nlabel-comment">
+        <% for(let label of labels){ %>
+            <% if(!label.isLabeled){ %>
+                <li class="list-group-item"><%= label.comment %></li>
+            <% } %>
+        <% } %>
+    </ul>
+</div>
+
+<script src="/js/comments/detail.js"></script>
+

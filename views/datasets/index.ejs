@@ -1,0 +1,24 @@
+<% layout('/layouts/boilerplate') %>
+<link rel="stylesheet" href="/css/datasets/index.css">
+<div class="d-flex flex-wrap justify-content-evenly align-content-start p-2">
+    <% for (let dataset of datasets) { %>
+        <div class="card my-3 mx-3" style="width: 20rem;">
+            <div class="card-body d-flex flex-column flex-fill flex-grow-1 ">
+                <h5 class="card-title"><%= dataset.title %></h5>
+                <p class="card-text"><%= dataset.description %></p>
+                <ul class="list-group mb-3 overflow-auto">
+                    <% for (let label of dataset.class) { %>
+                        <li class="list-group-item"><%= label %></li>
+                    <% } %>
+                </ul>
+            </div>
+            <div class="card-footer">
+
+                <form action="/datasets/<%= dataset._id %>?_method=DELETE" method="POST" class="mt-auto">
+                    <a class="btn btn-primary" href="/datasets/<%= dataset._id %>">Detail</a>
+                    <button class="btn btn-danger">Delete</button>
+                </form>
+            </div>
+        </div>
+    <% } %>
+</div>

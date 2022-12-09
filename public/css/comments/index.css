@@ -1,0 +1,9 @@
+.list-group{
+    overflow-y:scroll;
+    -webkit-overflow-scrolling: touch;
+}
+
+.card{
+    max-height: 80vh;
+}
+

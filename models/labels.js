@@ -7,7 +7,7 @@ const labelSchema = new Schema({
         required: true
     },
     class: {
-        type: Number
+        type: String
     },
     isLabeled: {
         type: Boolean,

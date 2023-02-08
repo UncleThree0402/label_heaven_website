@@ -6,6 +6,7 @@ const morgan = require('morgan')
 const {parse} = require('json2csv');
 const fs = require('fs').promises
 
+
 const app = express()
 
 //Connect To Database
@@ -18,10 +19,7 @@ db.once('open', function () {
     console.log("Database connected")
 })
 
-const Datasets = require('./models/datasets')
-const Videos = require('./models/videos')
-const Labels = require('./models/labels')
-const Comments = require('./models/comments')
+const mongoController = require('./models/controller')
 
 // App Use
 app.use(methodOverride("_method"))
@@ -45,13 +43,12 @@ app.get('/', (req, res) => {
 })
 
 app.get('/datasets', async (req, res) => {
-    const datasets = await Datasets.find({})
+    const datasets = await mongoController.getAllDatasets()
     res.render('datasets/index.ejs', {datasets})
 })
 
 app.post('/datasets', async (req, res) => {
-    const dataset = new Datasets(req.body)
-    await dataset.save()
+    await mongoController.newDatasets(req.body)
     res.redirect('/')
 })
 
@@ -59,128 +56,96 @@ app.get('/datasets/new', (req, res) => {
     res.render('datasets/new.ejs')
 })
 
-app.get('/datasets/:id', async (req, res) => {
-    const dataset = await Datasets.findById(req.params.id)
-    const videos = await Videos.find({datasetId: req.params.id})
-    let lable
-
-    const count = async () => {
-        const labelcount = {}
-        for (let video of videos) {
-            let bufferOne
-            let bufferTwo
-
-            do {
-                await Labels.count({
-                    isLabeled: true,
-                    datasetId: req.params.id,
-                    videoId: video.videoId
-                }, function (err, count) {
-                    bufferOne = count
-                }).clone()
-            } while (typeof bufferOne !== 'number')
-
-            do {
-                await Labels.count({
-                    datasetId: req.params.id,
-                    videoId: video.videoId
-                }, function (err, count) {
-                    bufferTwo = count
-                }).clone()
-            } while (typeof bufferTwo !== 'number')
-
-
-            labelcount[`${video.videoId}`] = Math.floor((bufferOne / bufferTwo) * 100)
-        }
-        return labelcount
-    }
-
-    lable = await count()
-    res.render('datasets/detail.ejs', {dataset, videos, labelcount: lable})
+app.get('/datasets/:datasetId', async (req, res) => {
+    const datasetId = req.params.datasetId
+    const {dataset, videos, videosPercentage} = await mongoController.getDatasetPageById(datasetId)
+    res.render('datasets/detail.ejs', {dataset, videos, videosPercentage})
 })
 
-app.post('/datasets/:id', async (req, res) => {
+app.post('/datasets/:datasetId', async (req, res) => {
     const {videoId} = req.body
+    const datasetId = req.params.datasetId
     const res_craw = await fetch('http://localhost:8080/youtube', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
         },
-        body: JSON.stringify({videoId, datasetId: req.params.id}),
+        body: JSON.stringify({videoId, datasetId: datasetId}),
     })
     const res_json = await res_craw.json()
-    res.redirect(`/datasets/${req.params.id}`)
+    res.redirect(`/datasets/${datasetId}`)
 })
 
 app.delete('/datasets/:id', async (req, res) => {
     const id = req.params.id
-    await Datasets.deleteMany({_id: id})
-    await Labels.deleteMany({datasetId: id})
-    await Videos.deleteMany({datasetId: id})
+    const state = await mongoController.deleteDataset(id)
     res.redirect('/datasets')
 })
 
-app.get('/datasets/:id/info', async (req, res) => {
-    const dataset = await Datasets.findById(req.params.id)
-    res.json(dataset)
+app.get('/datasets/:id/class', async (req, res) => {
+    const datasetId = req.params.id
+    const datasetClasses = await mongoController.getDatasetClasses(datasetId)
+    res.json(datasetClasses)
 })
 
-app.get('/datasets/:id/download', async (req, res) => {
-    const dataset = await Labels.find({datasetId: req.params.id, isLabeled: true}, {
-        comment: 1,
-        class: 1,
-        videoTitle: 1,
-        _id: 0
-    })
+app.get('/datasets/:datasetId/download', async (req, res) => {
+    const datasetId = req.params.datasetId
+    const labels = await mongoController.getDownloadLabel(datasetId)
+    for(const ele of labels){
+        ele["videoTitle"] += " 婚姻平權"
+    }
     const fields = ["comment", "class", "videoTitle"]
     const opts = {fields};
     try {
-        const csv = parse(dataset, opts);
+        const csv = parse(labels, opts);
         await fs.writeFile("dataset.csv", csv, {encoding: 'utf8', excelStrings: true, withBOM: true}, (err) => {
             console.log(err)
         })
         res.download("dataset.csv")
     } catch (err) {
-        res.redirect(`/datasets/${req.params.id}`)
+        res.redirect(`/datasets/${datasetId}`)
     }
 
 })
 
-app.get('/datasets/:datasetId/:videoId', async (req, res) => {
-    const labels = await Labels.find({datasetId: req.params.datasetId, videoId: req.params.videoId})
+app.get('/labels/:datasetId/:videoId/all', async (req, res) => {
+    const datasetId = req.params.datasetId
+    const videoId = req.params.videoId
+    const labels = await mongoController.getAllLabelsById(datasetId, videoId)
     res.render('comments/detail.ejs', {labels})
 })
 
 app.delete('/datasets/:datasetId/:videoId', async (req, res) => {
-    await Labels.deleteMany({datasetId: req.params.datasetId, videoId: req.params.videoId})
-    await Comments.deleteMany({videoId: req.params.videoId})
-    await Videos.deleteMany({datasetId: req.params.datasetId, videoId: req.params.videoId})
-    res.redirect(`/datasets/${req.params.datasetId}`)
+    const datasetId = req.params.datasetId
+    const videoId = req.params.videoId
+    await mongoController.deleteVideo(datasetId, videoId)
+    res.redirect(`/datasets/${datasetId}`)
 })
 
 app.get('/datasets/:datasetId/:videoId/job', async (req, res) => {
-    const video = await Videos.findOne({datasetId: req.params.datasetId, videoId: req.params.videoId})
-    res.render('comments/labels.ejs', {video, datasetId: req.params.datasetId})
+    const datasetId = req.params.datasetId
+    const videoId = req.params.videoId
+    const video = await mongoController.getVideoById(datasetId, videoId)
+    res.render('comments/labels.ejs', {video, datasetId: datasetId})
 })
 
-app.get('/labels/:datasetId/:videoId', async (req, res) => {
-    const dataset = await Labels.findOne({
-        isLabeled: false,
-        datasetId: req.params.datasetId,
-        videoId: req.params.videoId
-    })
-    res.json(dataset)
+app.get('/labels/:datasetId/:videoId/one', async (req, res) => {
+    const datasetId = req.params.datasetId
+    const videoId = req.params.videoId
+    const label = await mongoController.getOneLabelById(datasetId, videoId)
+    res.json(label)
 })
 
-app.post('/labels/:labelId', async (req, res) => {
-    const {className} = req.body
-    const re = await Labels.findByIdAndUpdate(req.params.labelId, {$set: {class: className, isLabeled: true}})
+app.patch('/labels/:labelId', async (req, res) => {
+    const label = req.body.className
+    const labelId = req.params.labelId
+    await mongoController.updateLabelClassByClass(labelId, label)
     res.json({status: true})
 })
 
 app.delete('/labels/:labelId', async (req, res) => {
     const {labelId} = req.body
-    await Labels.findByIdAndDelete(labelId)
+    await mongoController.deleteLabelById(labelId)
     res.json({status: true})
 })
 

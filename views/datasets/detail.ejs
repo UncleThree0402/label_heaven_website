@@ -29,22 +29,22 @@
                         (new Date(Date.parse(video.date))).toLocaleString() %></li>
                 <li class="list-group-item">
                     <div class="progress">
-                        <div class="progress-bar" role="progressbar" style="width: <%= labelcount[video.videoId] %>%;"
-                             aria-valuenow="<%= labelcount[video.videoId] %>"
-                             aria-valuemin="0" aria-valuemax="100"><%= labelcount[video.videoId] %>%
+                        <div class="progress-bar" role="progressbar" style="width: <%= videosPercentage[video.videoId] %>%;"
+                             aria-valuenow="<%= videosPercentage[video.videoId] %>"
+                             aria-valuemin="0" aria-valuemax="100"><%= videosPercentage[video.videoId] %>%
                         </div>
                     </div>
                 </li>
             </ul>
 
             <div class="card-footer d-flex flex-row justify-content-evenly flex-wrap ">
-                <% if (labelcount[video.videoId] !== 100){ %>
+                <% if (videosPercentage[video.videoId] !== 100){ %>
                     <form action="/datasets/<%= dataset._id %>/<%= video.videoId %>/job" class="flex-grow-1 mx-3"
                           method="GET">
                         <button class="btn btn-success w-100 h-100">Job</button>
                     </form>
                 <% } %>
-                <a class="btn btn-primary flex-grow-1 mx-3" href="/datasets/<%= dataset._id %>/<%= video.videoId %>">Detail</a>
+                <a class="btn btn-primary flex-grow-1 mx-3" href="/labels/<%= dataset._id %>/<%= video.videoId %>/all">Detail</a>
                 <form action="/datasets/<%= dataset._id %>/<%= video.videoId %>?_method=DELETE" class="flex-grow-1 mx-3"
                       method="POST">
                     <button class="btn btn-danger w-100 h-100">Delete</button>

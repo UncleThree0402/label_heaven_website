@@ -1,4 +1,5 @@
 .comment{
     overflow-y:scroll;
     -webkit-overflow-scrolling: touch;
+    max-height: 15vh;
 }

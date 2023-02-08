@@ -31,7 +31,7 @@ const deleteComment = async () =>{
 remove_btn.addEventListener('click', deleteComment)
 
 const updateComment = async () => {
-    await fetch(`/labels/${datasetIdSpan.innerText}/${videoIdSpan.innerText}`)
+    await fetch(`/labels/${datasetIdSpan.innerText}/${videoIdSpan.innerText}/one`)
         .then(async (data) => {
             return data.json()
         }).then((data) => {
@@ -50,15 +50,16 @@ const updateComment = async () => {
 updateComment()
 
 const appendButton = async () => {
-    const dataset = await fetch(`/datasets/${datasetIdSpan.innerText}/info`)
+    const {classes} = await fetch(`/datasets/${datasetIdSpan.innerText}/class`)
         .then(async (data) => {
             return data.json()
         })
-    for (let i = 0; i < dataset.class.length; i++) {
+
+    for (let i = 0; i < classes.length; i++) {
         let button = document.createElement('button')
         button.className = "btn btn-primary m-4"
-        button.innerText = dataset.class[i]
-        button.value = `${i}`
+        button.innerText = classes[i]
+        button.value = classes[i]
         button.addEventListener('click', submitLabel)
         classBox.append(button)
     }
@@ -69,7 +70,7 @@ appendButton()
 
 const submitLabel = async (event) => {
     const res_craw = await fetch(`/labels/${labelIdSpan.innerText}`, {
-        method: 'POST',
+        method: 'PATCH',
         headers: {
             'Content-Type': 'application/json',
         },
